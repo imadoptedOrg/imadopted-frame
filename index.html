@@ -30,22 +30,31 @@
       margin-bottom: 1rem;
     }
     canvas { width: 100%; height: 100%; display: block; }
-    input[type=file], button {
+    .upload-btn, button {
       width: 100%;
       margin: .5rem 0;
       padding: .8rem;
       font-size: 1rem;
+      font-weight: 600;
       border-radius: 8px;
       border: none;
+      text-align: center;
+      cursor: pointer;
     }
-    input[type=file] { background: #fff; }
+    .upload-btn {
+      background: #0b6efb;
+      color: #fff;
+      display: inline-block;
+    }
+    .upload-btn:hover { background: #0956c6; }
     button {
       background: #0b6efb;
       color: #fff;
-      cursor: pointer;
     }
     button:disabled { opacity: 0.6; cursor: not-allowed; }
     footer { font-size: .8rem; opacity: .7; padding-bottom: 1rem; text-align: center; }
+    .helper { font-size: 0.85rem; opacity: 0.8; margin-top: 0.5rem; text-align: center; }
+    #status { font-size: 0.9rem; color: #555; margin: 0.5rem 0; text-align: center; }
   </style>
 </head>
 <body>
@@ -58,8 +67,18 @@
     <div class="preview">
       <canvas id="canvas"></canvas>
     </div>
-    <input type="file" id="upload" accept="image/*">
+
+    <!-- Upload button -->
+    <label for="upload" class="upload-btn">Upload Photo</label>
+    <input type="file" id="upload" accept="image/*" hidden>
+
+    <div id="status"></div>
+
+    <!-- Download buttons -->
     <button id="download" disabled>Download PNG</button>
+    <button id="open" disabled style="background:#444;">Open in New Tab</button>
+
+    <p class="helper">On iPhone/iPad: if the image opens in a new tab, long-press it and choose “Save Image.”</p>
   </main>
 
   <footer>
@@ -69,24 +88,38 @@
 <script>
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+const fileInput = document.getElementById('upload');
+const downloadBtn = document.getElementById('download');
+const openBtn = document.getElementById('open');
+const status = document.getElementById('status');
+
 let photo = null, overlay = new Image();
 let scale = 1, offsetX = 0, offsetY = 0, dragging = false, startX=0, startY=0;
 
 canvas.width = 800; canvas.height = 800;
 
 // Load overlay (replace with your hosted PNG URL)
-overlay.src = "https://images.squarespace-cdn.com/content/61c946dc1a2e343a14ef4f41/73d55613-e468-495f-bdc3-84d3171e265a/im+adopted+badge.png"; // <-- change this to your Squarespace/hosted PNG link
+overlay.src = "overlay.png"; // <-- change this to your Squarespace/hosted PNG link
 overlay.onload = draw;
 
-document.getElementById('upload').addEventListener('change', e => {
+// Upload photo
+fileInput.addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
+  reader.onloadstart = () => { status.innerText = "Loading photo..."; };
   reader.onload = ev => {
     photo = new Image();
-    photo.onload = () => { fitImage(); draw(); document.getElementById('download').disabled = false; };
+    photo.onload = () => {
+      fitImage();
+      draw();
+      downloadBtn.disabled = false;
+      openBtn.disabled = false;
+      status.innerText = "";
+    };
     photo.src = ev.target.result;
   };
+  reader.onloadend = () => { status.innerText = ""; };
   reader.readAsDataURL(file);
 });
 
@@ -130,13 +163,25 @@ canvas.addEventListener('wheel', e => {
   draw();
 },{passive:false});
 
-// Download
-document.getElementById('download').addEventListener('click', () => {
-  const link = document.createElement('a');
-  link.download = 'imadopted-frame.png';
-  link.href = canvas.toDataURL('image/png');
-  link.click();
-});
+// Export as PNG
+function exportImage(openTab=false){
+  const url = canvas.toDataURL('image/png');
+  if (openTab){
+    const w = window.open();
+    w.document.write('<title>Save your frame</title><img style="width:100%;height:auto" src="'+url+'">');
+    w.document.close();
+  } else {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'imadopted-frame.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+}
+
+downloadBtn.addEventListener('click', ()=> exportImage(false));
+openBtn.addEventListener('click', ()=> exportImage(true));
 </script>
 </body>
 </html>
