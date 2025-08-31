@@ -90,14 +90,38 @@ let state = { scale:1,minScale:1,x:0,y:0,dragging:false,sx:0,sy:0,imgLoaded:fals
 function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; }
 if (isIOS()){ downloadBtn.textContent = "Download Image with Frame (iPhone/iPad)"; }
 
-// --- CounterAPI setup ---
-const COUNTER_URL = "https://api.counterapi.dev/hit/imadopted/frame-downloads"; 
-function updateCounter() {
-  fetch(COUNTER_URL)
+// --- CounterAPI setup (v2 workspace) ---
+const WORKSPACE_ID = "ipted";  // e.g. 3c9e1d1b-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+const COUNTER_SLUG = "frame-downloads";                   // use the slug you created in CounterAPI
+
+const GET_URL = `https://api.counterapi.dev/v2/workspaces/${ipted}/${frame-downloads}`;
+const HIT_URL = `https://api.counterapi.dev/v2/workspaces/${ipted}/${frame-downloads}/hit`;
+
+const counterEl = document.getElementById("downloadCount");
+
+function fetchCounter() {
+  fetch(GET_URL)
     .then(res => res.json())
-    .then(data => { counterEl.textContent = data.value; })
-    .catch(err => console.error("CounterAPI error:", err));
+    .then(data => {
+      counterEl.textContent = data.value ?? data.count ?? 0;
+    })
+    .catch(err => console.error("CounterAPI fetch error:", err));
 }
+
+function updateCounter() {
+  fetch(HIT_URL)
+    .then(res => res.json())
+    .then(data => {
+      counterEl.textContent = data.value ?? data.count ?? 0;
+    })
+    .catch(err => console.error("CounterAPI hit error:", err));
+}
+
+// On page load, show the current count
+fetchCounter();
+
+// After your download function runs, call updateCounter()
+
 
 // --- upload ---
 fileInput.addEventListener('change', e => {
