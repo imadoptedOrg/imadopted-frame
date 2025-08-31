@@ -1,189 +1,173 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>I’m Adopted – Frame Generator</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    :root {
-      --blue: #0b6efb;
-      --blue-dark: #0956c6;
-      --ink: #222;
-      --bg: #f4f8fb;
-      --btn-radius: 12px;
-    }
-    * { box-sizing: border-box; }
-    body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--ink);
-      margin: 0; display: flex; flex-direction: column; align-items: center;
-    }
-    header { text-align: center; padding: 1.5rem 1rem .5rem; }
-    h1 { margin: 0; font-size: 1.6rem; color: var(--blue); }
-    main { width: 100%; max-width: 480px; padding: 0 1rem 2rem; }
-    .preview {
-      aspect-ratio: 1/1; border-radius: 50%; overflow: hidden; background: #eee; margin: 0 0 1rem;
-      box-shadow: 0 8px 24px rgba(0,0,0,.08);
-      position: relative;
-    }
-    canvas { width: 100%; height: 100%; display: block; touch-action: none; }
-    .btn, .upload-btn {
-      width: 100%; display: inline-flex; justify-content: center; align-items: center;
-      padding: 0.9rem 1.1rem; font-weight: 700; font-size: 1rem; border: 0; border-radius: var(--btn-radius);
-      cursor: pointer; transition: transform .02s ease;
-    }
-    .btn:active, .upload-btn:active { transform: translateY(1px); }
-    .btn-primary, .upload-btn {
-      background: var(--blue); color: #fff;
-      box-shadow: 0 6px 16px rgba(11,110,251,.25);
-    }
-    .btn-primary:hover, .upload-btn:hover { background: var(--blue-dark); }
-    .btn[disabled] { opacity: .6; cursor: not-allowed; }
-    .helper, #status { text-align: center; font-size: .9rem; opacity: .8; margin-top: .5rem; }
-    /* make “Upload Photo” pretty while using native input under the hood */
-    #upload { position: absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
-    .stack { display: grid; gap: .75rem; }
-    footer { font-size: .85rem; opacity: .7; padding-bottom: 1rem; text-align: center; }
-  </style>
+<meta charset="UTF-8" />
+<title>I’m Adopted – Frame Generator</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root{--blue:#0b6efb;--blue2:#0956c6;--bg:#f4f8fb;--ink:#222}
+  *{box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);margin:0;display:flex;flex-direction:column;align-items:center}
+  header{text-align:center;padding:1.5rem 1rem .5rem}
+  h1{margin:0;font-size:1.6rem;color:var(--blue)}
+  main{width:100%;max-width:480px;padding:0 1rem 2rem}
+  .preview{position:relative;aspect-ratio:1/1;border-radius:50%;overflow:hidden;background:#eee;margin:0 0 1rem;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+  canvas{width:100%;height:100%;display:block;touch-action:none}
+  .btn,.upload-btn{width:100%;display:inline-flex;justify-content:center;align-items:center;padding:.9rem 1.1rem;font-weight:700;font-size:1rem;border:0;border-radius:12px;cursor:pointer}
+  .btn-primary,.upload-btn{background:var(--blue);color:#fff;box-shadow:0 6px 16px rgba(11,110,251,.25)}
+  .btn-primary:hover,.upload-btn:hover{background:var(--blue2)}
+  .btn[disabled]{opacity:.6;cursor:not-allowed}
+  #upload{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+  .stack{display:grid;gap:.75rem}
+  .helper,#status{text-align:center;font-size:.9rem;opacity:.8;margin-top:.5rem}
+  footer{font-size:.85rem;opacity:.7;padding-bottom:1rem;text-align:center}
+</style>
 </head>
 <body>
-  <header>
-    <h1>Add the I’m Adopted Frame</h1>
-    <p>Upload your photo and download it with our campaign frame.</p>
-  </header>
+<header>
+  <h1>Add the I’m Adopted Frame</h1>
+  <p>Upload your photo and download it with our campaign frame.</p>
+</header>
 
-  <main>
-    <div class="preview">
-      <canvas id="canvas"></canvas>
-    </div>
+<main>
+  <div class="preview">
+    <canvas id="canvas"></canvas>
+  </div>
 
-    <div class="stack">
-      <!-- Upload -->
-      <label for="upload" class="upload-btn">Upload Photo</label>
-      <input type="file" id="upload" accept="image/*" />
+  <div class="stack">
+    <label for="upload" class="upload-btn">Upload Photo</label>
+    <input type="file" id="upload" accept="image/*" />
+    <div id="status"></div>
+    <button id="download" class="btn btn-primary" disabled>Download PNG</button>
+    <p class="helper">On iPhone/iPad the image may open in a new tab. Long-press it and choose “Save Image.”</p>
+  </div>
+</main>
 
-      <div id="status"></div>
-
-      <!-- Single download button (auto-behaves for iOS) -->
-      <button id="download" class="btn btn-primary" disabled>Download PNG</button>
-
-      <p class="helper">On iPhone/iPad the image may open in a new tab. Long-press it and choose “Save Image.”</p>
-    </div>
-  </main>
-
-  <footer>© I’m Adopted – Supporting Adoptee Mental Health</footer>
+<footer>© I’m Adopted – Supporting Adoptee Mental Health</footer>
 
 <script>
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+const cvs = document.getElementById('canvas');
+const ctx = cvs.getContext('2d');
 const fileInput = document.getElementById('upload');
 const downloadBtn = document.getElementById('download');
 const statusEl = document.getElementById('status');
 
+const PREVIEW_SIZE = 720;            // logical preview size
+const DPR = Math.max(1, window.devicePixelRatio || 1);
+cvs.width = PREVIEW_SIZE * DPR;
+cvs.height = PREVIEW_SIZE * DPR;
+ctx.setTransform(DPR,0,0,DPR,0,0);   // draw in CSS pixels
+
 let photo = null;
 let overlay = new Image();
-let scale = 1, offsetX = 0, offsetY = 0, dragging = false, startX=0, startY=0;
-
-canvas.width = 800; canvas.height = 800;
-
-// ---- IMPORTANT: keep the overlay in the SAME REPO (same origin) ----
-overlay.crossOrigin = "anonymous";          // extra safety
-overlay.src = "./overlay.png";              // <-- ensure this file exists in the repo root
+overlay.crossOrigin = "anonymous";
+overlay.src = "./overlay.png";       // keep in same repo for same-origin
 overlay.onload = draw;
 
-// Upload photo
+let state = {
+  scale: 1, minScale: 1,
+  x: 0, y: 0,
+  dragging: false, sx:0, sy:0,
+  imgLoaded: false
+};
+
 fileInput.addEventListener('change', e => {
-  const file = e.target.files && e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onloadstart = () => statusEl.textContent = "Loading photo…";
-  reader.onload = ev => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onloadstart = ()=> statusEl.textContent = "Loading photo…";
+  r.onload = ev => {
     photo = new Image();
-    photo.onload = () => {
-      fitImage(); draw();
-      downloadBtn.disabled = false;
-      statusEl.textContent = "";
-    };
+    photo.onload = () => { fitToCover(); downloadBtn.disabled = false; statusEl.textContent = ""; draw(); };
     photo.src = ev.target.result;
   };
-  reader.onloadend = () => { if (statusEl.textContent) statusEl.textContent = ""; };
-  reader.readAsDataURL(file);
+  r.onloadend = ()=> { if(statusEl.textContent) statusEl.textContent=""; };
+  r.readAsDataURL(f);
 });
 
-// Fit image to canvas
-function fitImage(){
-  const s = Math.max(canvas.width/photo.width, canvas.height/photo.height);
-  scale = s;
-  offsetX = (canvas.width - photo.width*scale)/2;
-  offsetY = (canvas.height - photo.height*scale)/2;
+function fitToCover(){
+  state.imgLoaded = true;
+  const W = PREVIEW_SIZE, H = PREVIEW_SIZE;
+  const s = Math.max(W / photo.width, H / photo.height);  // cover full square
+  state.minScale = s;
+  state.scale = s;
+  state.x = (W - photo.width * s) / 2;
+  state.y = (H - photo.height * s) / 2;
+  clampOffset();
 }
 
-// Draw
+function clampOffset(){
+  // keep image covering the whole square so the circular mask never shows gaps
+  const W = PREVIEW_SIZE, H = PREVIEW_SIZE;
+  const w = photo.width * state.scale;
+  const h = photo.height * state.scale;
+  const minX = W - w, maxX = 0;
+  const minY = H - h, maxY = 0;
+  state.x = Math.min(maxX, Math.max(minX, state.x));
+  state.y = Math.min(maxY, Math.max(minY, state.y));
+}
+
 function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  // circular mask for photo
+  const W = PREVIEW_SIZE, H = PREVIEW_SIZE;
+  ctx.clearRect(0,0,W,H);
+
+  // circular mask
   ctx.save();
   ctx.beginPath();
-  ctx.arc(canvas.width/2, canvas.height/2, canvas.width/2, 0, Math.PI*2);
+  ctx.arc(W/2, H/2, W/2, 0, Math.PI*2);
   ctx.clip();
-  if (photo) ctx.drawImage(photo, offsetX, offsetY, photo.width*scale, photo.height*scale);
+
+  if (state.imgLoaded) {
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(photo, state.x, state.y, photo.width*state.scale, photo.height*state.scale);
+  }
   ctx.restore();
-  // overlay on top
-  if (overlay.complete) ctx.drawImage(overlay, 0, 0, canvas.width, canvas.height);
+
+  if (overlay.complete) ctx.drawImage(overlay, 0, 0, W, H);
 }
 
-// Drag to move
-canvas.addEventListener('pointerdown', e => { dragging = true; startX=e.clientX; startY=e.clientY; canvas.setPointerCapture(e.pointerId); });
-canvas.addEventListener('pointermove', e => {
-  if (!dragging) return;
-  offsetX += e.clientX - startX; offsetY += e.clientY - startY;
-  startX = e.clientX; startY = e.clientY; draw();
+// drag
+cvs.addEventListener('pointerdown', e => {
+  if (!state.imgLoaded) return;
+  state.dragging = true; state.sx = e.clientX; state.sy = e.clientY;
+  cvs.setPointerCapture(e.pointerId);
 });
-["pointerup","pointerleave","pointercancel"].forEach(ev=>canvas.addEventListener(ev, ()=> dragging=false));
+cvs.addEventListener('pointermove', e => {
+  if (!state.dragging) return;
+  state.x += (e.clientX - state.sx);
+  state.y += (e.clientY - state.sy);
+  state.sx = e.clientX; state.sy = e.clientY;
+  clampOffset(); draw();
+});
+["pointerup","pointercancel","pointerleave"].forEach(ev=>cvs.addEventListener(ev, ()=> state.dragging=false));
 
-// Zoom (wheel; pinch handled by browser converting to wheel deltas)
-canvas.addEventListener('wheel', e => {
+// zoom (wheel / pinch)
+cvs.addEventListener('wheel', e => {
+  if (!state.imgLoaded) return;
   e.preventDefault();
-  const delta = Math.exp(-e.deltaY/300);
-  // zoom around center
-  const cx = canvas.width/2, cy = canvas.height/2;
-  offsetX = cx - (cx - offsetX) * delta;
-  offsetY = cy - (cy - offsetY) * delta;
-  scale *= delta;
-  draw();
+  const delta = Math.exp(-e.deltaY / 300);
+  const old = state.scale;
+  const next = Math.max(state.minScale, old * delta);
+
+  // zoom around center of canvas
+  const cx = PREVIEW_SIZE/2, cy = PREVIEW_SIZE/2;
+  state.x = cx - (cx - state.x) * (next / old);
+  state.y = cy - (cy - state.y) * (next / old);
+  state.scale = next;
+  clampOffset(); draw();
 },{passive:false});
 
-// Download / iOS-aware
+// high-res export at overlay’s native size (or 2048 fallback)
 function exportImage(){
-  try {
-    const url = canvas.toDataURL('image/png');
-    if (isIOS()){
-      // iOS prefers opening in a new tab so user can long-press Save Image
-      const w = window.open();
-      if (w) {
-        w.document.write('<title>Save your frame</title><img style="width:100%;height:auto" src="'+url+'">');
-        w.document.close();
-      }
-    } else {
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'imadopted-frame.png';
-      document.body.appendChild(a); a.click(); a.remove();
-    }
-  } catch (err) {
-    // Fallback (e.g., if canvas was tainted): open in new tab
-    const w = window.open();
-    if (w) {
-      const url = canvas.toDataURL(); // might still work even when a.name failed
-      w.document.write('<title>Save your frame</title><img style="width:100%;height:auto" src="'+url+'">');
-      w.document.close();
-    }
-  }
-}
-function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; }
+  const size = (overlay.naturalWidth && overlay.naturalHeight)
+    ? Math.min(overlay.naturalWidth, overlay.naturalHeight)
+    : 2048;
 
-downloadBtn.addEventListener('click', exportImage);
-</script>
-</body>
-</html>
+  const tmp = document.createElement('canvas');
+  const tctx = tmp.getContext('2d');
+  tmp.width = size; tmp.height = size;
+  tctx.imageSmoothingEnabled = true;
+  tctx.imageSmoothingQuality = 'high';
+
+  // scale preview coordinates to export sca
