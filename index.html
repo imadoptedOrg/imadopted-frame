@@ -170,4 +170,42 @@ function exportImage(){
   tctx.imageSmoothingEnabled = true;
   tctx.imageSmoothingQuality = 'high';
 
-  // scale preview coordinates to export sca
+  // scale preview coordinates to export scale
+  const factor = size / PREVIEW_SIZE;
+
+  // circular mask
+  tctx.beginPath();
+  tctx.arc(size/2, size/2, size/2, 0, Math.PI*2);
+  tctx.clip();
+
+  if (state.imgLoaded) {
+    tctx.drawImage(
+      photo,
+      state.x * factor,
+      state.y * factor,
+      photo.width * state.scale * factor,
+      photo.height * state.scale * factor
+    );
+  }
+
+  if (overlay.complete) tctx.drawImage(overlay, 0, 0, size, size);
+
+  const url = tmp.toDataURL('image/png');
+  if (isIOS()){
+    const w = window.open();
+    if (w){ w.document.write('<title>Save your frame</title><img style="width:100%;height:auto" src="'+url+'">'); w.document.close(); }
+  } else {
+    const a = document.createElement('a');
+    a.href = url; a.download = 'imadopted-frame.png';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+}
+function isIOS(){return /iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream}
+
+document.getElementById('download').addEventListener('click', exportImage);
+
+// initial draw (in case overlay loads first)
+draw();
+</script>
+</body>
+</html>
