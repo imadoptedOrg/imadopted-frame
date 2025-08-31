@@ -84,7 +84,7 @@ overlay.onload = draw;
 let state = { scale:1,minScale:1,x:0,y:0,dragging:false,sx:0,sy:0,imgLoaded:false };
 
 function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; }
-if (isIOS()){ downloadBtn.textContent = "Download PNG (iPhone/iPad)"; }
+if (isIOS()){ downloadBtn.textContent = "Download Image with Frame (iPhone/iPad)"; }
 
 // --- upload ---
 fileInput.addEventListener('change', e => {
