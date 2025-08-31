@@ -1,60 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>I’m Adopted – Frame Generator</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
+    :root {
+      --blue: #0b6efb;
+      --blue-dark: #0956c6;
+      --ink: #222;
+      --bg: #f4f8fb;
+      --btn-radius: 12px;
+    }
+    * { box-sizing: border-box; }
     body {
-      font-family: system-ui, -apple-system, Arial, sans-serif;
-      background: #f4f8fb;
-      color: #222;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      margin: 0; display: flex; flex-direction: column; align-items: center;
     }
-    header {
-      text-align: center;
-      padding: 1.5rem;
-    }
-    h1 { margin: 0; font-size: 1.6rem; color: #0b6efb; }
-    main { width: 100%; max-width: 420px; padding: 0 1rem 2rem; }
+    header { text-align: center; padding: 1.5rem 1rem .5rem; }
+    h1 { margin: 0; font-size: 1.6rem; color: var(--blue); }
+    main { width: 100%; max-width: 480px; padding: 0 1rem 2rem; }
     .preview {
+      aspect-ratio: 1/1; border-radius: 50%; overflow: hidden; background: #eee; margin: 0 0 1rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,.08);
       position: relative;
-      aspect-ratio: 1/1;
-      border-radius: 50%;
-      overflow: hidden;
-      background: #eee;
-      margin-bottom: 1rem;
     }
-    canvas { width: 100%; height: 100%; display: block; }
-    .upload-btn, button {
-      width: 100%;
-      margin: .5rem 0;
-      padding: .8rem;
-      font-size: 1rem;
-      font-weight: 600;
-      border-radius: 8px;
-      border: none;
-      text-align: center;
-      cursor: pointer;
+    canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+    .btn, .upload-btn {
+      width: 100%; display: inline-flex; justify-content: center; align-items: center;
+      padding: 0.9rem 1.1rem; font-weight: 700; font-size: 1rem; border: 0; border-radius: var(--btn-radius);
+      cursor: pointer; transition: transform .02s ease;
     }
-    .upload-btn {
-      background: #0b6efb;
-      color: #fff;
-      display: inline-block;
+    .btn:active, .upload-btn:active { transform: translateY(1px); }
+    .btn-primary, .upload-btn {
+      background: var(--blue); color: #fff;
+      box-shadow: 0 6px 16px rgba(11,110,251,.25);
     }
-    .upload-btn:hover { background: #0956c6; }
-    button {
-      background: #0b6efb;
-      color: #fff;
-    }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
-    footer { font-size: .8rem; opacity: .7; padding-bottom: 1rem; text-align: center; }
-    .helper { font-size: 0.85rem; opacity: 0.8; margin-top: 0.5rem; text-align: center; }
-    #status { font-size: 0.9rem; color: #555; margin: 0.5rem 0; text-align: center; }
+    .btn-primary:hover, .upload-btn:hover { background: var(--blue-dark); }
+    .btn[disabled] { opacity: .6; cursor: not-allowed; }
+    .helper, #status { text-align: center; font-size: .9rem; opacity: .8; margin-top: .5rem; }
+    /* make “Upload Photo” pretty while using native input under the hood */
+    #upload { position: absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
+    .stack { display: grid; gap: .75rem; }
+    footer { font-size: .85rem; opacity: .7; padding-bottom: 1rem; text-align: center; }
   </style>
 </head>
 <body>
@@ -68,120 +58,132 @@
       <canvas id="canvas"></canvas>
     </div>
 
-    <!-- Upload button -->
-    <label for="upload" class="upload-btn">Upload Photo</label>
-    <input type="file" id="upload" accept="image/*" hidden>
+    <div class="stack">
+      <!-- Upload -->
+      <label for="upload" class="upload-btn">Upload Photo</label>
+      <input type="file" id="upload" accept="image/*" />
 
-    <div id="status"></div>
+      <div id="status"></div>
 
-    <!-- Download buttons -->
-    <button id="download" disabled>Download PNG</button>
-    <button id="open" disabled style="background:#444;">Open in New Tab</button>
+      <!-- Single download button (auto-behaves for iOS) -->
+      <button id="download" class="btn btn-primary" disabled>Download PNG</button>
 
-    <p class="helper">On iPhone/iPad: if the image opens in a new tab, long-press it and choose “Save Image.”</p>
+      <p class="helper">On iPhone/iPad the image may open in a new tab. Long-press it and choose “Save Image.”</p>
+    </div>
   </main>
 
-  <footer>
-    © I’m Adopted – Supporting Adoptee Mental Health
-  </footer>
+  <footer>© I’m Adopted – Supporting Adoptee Mental Health</footer>
 
 <script>
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const fileInput = document.getElementById('upload');
 const downloadBtn = document.getElementById('download');
-const openBtn = document.getElementById('open');
-const status = document.getElementById('status');
+const statusEl = document.getElementById('status');
 
-let photo = null, overlay = new Image();
+let photo = null;
+let overlay = new Image();
 let scale = 1, offsetX = 0, offsetY = 0, dragging = false, startX=0, startY=0;
 
 canvas.width = 800; canvas.height = 800;
 
-// Load overlay (replace with your hosted PNG URL)
-overlay.src = "https://images.squarespace-cdn.com/content/61c946dc1a2e343a14ef4f41/73d55613-e468-495f-bdc3-84d3171e265a/im+adopted+badge.png"; // <-- change this to your Squarespace/hosted PNG link
+// ---- IMPORTANT: keep the overlay in the SAME REPO (same origin) ----
+overlay.crossOrigin = "anonymous";          // extra safety
+overlay.src = "./overlay.png";              // <-- ensure this file exists in the repo root
 overlay.onload = draw;
 
 // Upload photo
 fileInput.addEventListener('change', e => {
-  const file = e.target.files[0];
+  const file = e.target.files && e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onloadstart = () => { status.innerText = "Loading photo..."; };
+  reader.onloadstart = () => statusEl.textContent = "Loading photo…";
   reader.onload = ev => {
     photo = new Image();
     photo.onload = () => {
-      fitImage();
-      draw();
+      fitImage(); draw();
       downloadBtn.disabled = false;
-      openBtn.disabled = false;
-      status.innerText = "";
+      statusEl.textContent = "";
     };
     photo.src = ev.target.result;
   };
-  reader.onloadend = () => { status.innerText = ""; };
+  reader.onloadend = () => { if (statusEl.textContent) statusEl.textContent = ""; };
   reader.readAsDataURL(file);
 });
 
-// Fit uploaded photo to canvas
+// Fit image to canvas
 function fitImage(){
   const s = Math.max(canvas.width/photo.width, canvas.height/photo.height);
-  scale = s; offsetX = (canvas.width - photo.width*scale)/2; offsetY = (canvas.height - photo.height*scale)/2;
+  scale = s;
+  offsetX = (canvas.width - photo.width*scale)/2;
+  offsetY = (canvas.height - photo.height*scale)/2;
 }
 
-// Draw everything
+// Draw
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  // Clip to circle
+  // circular mask for photo
   ctx.save();
   ctx.beginPath();
   ctx.arc(canvas.width/2, canvas.height/2, canvas.width/2, 0, Math.PI*2);
   ctx.clip();
-  // User photo
   if (photo) ctx.drawImage(photo, offsetX, offsetY, photo.width*scale, photo.height*scale);
   ctx.restore();
-  // Overlay on top
-  if (overlay.complete) ctx.drawImage(overlay,0,0,canvas.width,canvas.height);
+  // overlay on top
+  if (overlay.complete) ctx.drawImage(overlay, 0, 0, canvas.width, canvas.height);
 }
 
 // Drag to move
-canvas.addEventListener('pointerdown', e => { dragging = true; startX=e.clientX; startY=e.clientY; });
+canvas.addEventListener('pointerdown', e => { dragging = true; startX=e.clientX; startY=e.clientY; canvas.setPointerCapture(e.pointerId); });
 canvas.addEventListener('pointermove', e => {
   if (!dragging) return;
-  offsetX += e.clientX-startX; offsetY += e.clientY-startY;
-  startX = e.clientX; startY = e.clientY;
-  draw();
+  offsetX += e.clientX - startX; offsetY += e.clientY - startY;
+  startX = e.clientX; startY = e.clientY; draw();
 });
-canvas.addEventListener('pointerup', ()=> dragging=false);
-canvas.addEventListener('pointerleave', ()=> dragging=false);
+["pointerup","pointerleave","pointercancel"].forEach(ev=>canvas.addEventListener(ev, ()=> dragging=false));
 
-// Zoom with wheel/pinch
+// Zoom (wheel; pinch handled by browser converting to wheel deltas)
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
   const delta = Math.exp(-e.deltaY/300);
+  // zoom around center
+  const cx = canvas.width/2, cy = canvas.height/2;
+  offsetX = cx - (cx - offsetX) * delta;
+  offsetY = cy - (cy - offsetY) * delta;
   scale *= delta;
   draw();
 },{passive:false});
 
-// Export as PNG
-function exportImage(openTab=false){
-  const url = canvas.toDataURL('image/png');
-  if (openTab){
+// Download / iOS-aware
+function exportImage(){
+  try {
+    const url = canvas.toDataURL('image/png');
+    if (isIOS()){
+      // iOS prefers opening in a new tab so user can long-press Save Image
+      const w = window.open();
+      if (w) {
+        w.document.write('<title>Save your frame</title><img style="width:100%;height:auto" src="'+url+'">');
+        w.document.close();
+      }
+    } else {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'imadopted-frame.png';
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+  } catch (err) {
+    // Fallback (e.g., if canvas was tainted): open in new tab
     const w = window.open();
-    w.document.write('<title>Save your frame</title><img style="width:100%;height:auto" src="'+url+'">');
-    w.document.close();
-  } else {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'imadopted-frame.png';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    if (w) {
+      const url = canvas.toDataURL(); // might still work even when a.name failed
+      w.document.write('<title>Save your frame</title><img style="width:100%;height:auto" src="'+url+'">');
+      w.document.close();
+    }
   }
 }
+function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; }
 
-downloadBtn.addEventListener('click', ()=> exportImage(false));
-openBtn.addEventListener('click', ()=> exportImage(true));
+downloadBtn.addEventListener('click', exportImage);
 </script>
 </body>
 </html>
