@@ -53,6 +53,9 @@
     <div id="ios-tip">
       On iPhone/iPad: the image opens in a new tab. Long-press it and choose <b>Save Image</b>.
     </div>
+
+    <!-- Download Counter -->
+    <p id="counter">💙 <strong id="downloadCount">0</strong> frames created so far</p>
   </div>
 </main>
 
@@ -68,6 +71,7 @@ const zoomInBtn = document.getElementById('zoomIn');
 const zoomOutBtn = document.getElementById('zoomOut');
 const fitBtn = document.getElementById('fit');
 const iosTip = document.getElementById('ios-tip');
+const counterEl = document.getElementById('downloadCount');
 
 const PREVIEW_SIZE = 720;
 const DPR = Math.max(1, window.devicePixelRatio || 1);
@@ -85,6 +89,15 @@ let state = { scale:1,minScale:1,x:0,y:0,dragging:false,sx:0,sy:0,imgLoaded:fals
 
 function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; }
 if (isIOS()){ downloadBtn.textContent = "Download Image with Frame (iPhone/iPad)"; }
+
+// --- CounterAPI setup ---
+const COUNTER_URL = "https://api.counterapi.dev/hit/imadopted/frame-downloads"; 
+function updateCounter() {
+  fetch(COUNTER_URL)
+    .then(res => res.json())
+    .then(data => { counterEl.textContent = data.value; })
+    .catch(err => console.error("CounterAPI error:", err));
+}
 
 // --- upload ---
 fileInput.addEventListener('change', e => {
@@ -178,7 +191,7 @@ zoomInBtn.addEventListener('click',()=>zoomAbout(PREVIEW_SIZE/2,PREVIEW_SIZE/2,1
 zoomOutBtn.addEventListener('click',()=>zoomAbout(PREVIEW_SIZE/2,PREVIEW_SIZE/2,1/1.12));
 fitBtn.addEventListener('click',()=>{if(photo)fitToCover();});
 
-// --- export high-res square with white bg ---
+// --- export high-res square with white bg + counter ---
 function exportImage(){
   const size=(overlay.naturalWidth&&overlay.naturalHeight)?Math.min(overlay.naturalWidth,overlay.naturalHeight):2048;
   const tmp=document.createElement('canvas'); const tctx=tmp.getContext('2d');
@@ -198,11 +211,14 @@ function exportImage(){
     iosTip.style.display='none';
     const a=document.createElement('a'); a.href=url; a.download='imadopted-frame.png'; document.body.appendChild(a); a.click(); a.remove();
   }
+  // Increment CounterAPI
+  updateCounter();
 }
 downloadBtn.addEventListener('click',exportImage);
 
-// initial draw
+// --- initial load ---
 draw();
+updateCounter();
 </script>
 </body>
 </html>
