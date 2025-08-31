@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>I’m Adopted – Frame Generator</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body {
+      font-family: system-ui, -apple-system, Arial, sans-serif;
+      background: #f4f8fb;
+      color: #222;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      text-align: center;
+      padding: 1.5rem;
+    }
+    h1 { margin: 0; font-size: 1.6rem; color: #0b6efb; }
+    main { width: 100%; max-width: 420px; padding: 0 1rem 2rem; }
+    .preview {
+      position: relative;
+      aspect-ratio: 1/1;
+      border-radius: 50%;
+      overflow: hidden;
+      background: #eee;
+      margin-bottom: 1rem;
+    }
+    canvas { width: 100%; height: 100%; display: block; }
+    input[type=file], button {
+      width: 100%;
+      margin: .5rem 0;
+      padding: .8rem;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: none;
+    }
+    input[type=file] { background: #fff; }
+    button {
+      background: #0b6efb;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    footer { font-size: .8rem; opacity: .7; padding-bottom: 1rem; text-align: center; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Add the I’m Adopted Frame</h1>
+    <p>Upload your photo and download it with our campaign frame.</p>
+  </header>
+
+  <main>
+    <div class="preview">
+      <canvas id="canvas"></canvas>
+    </div>
+    <input type="file" id="upload" accept="image/*">
+    <button id="download" disabled>Download PNG</button>
+  </main>
+
+  <footer>
+    © I’m Adopted – Supporting Adoptee Mental Health
+  </footer>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let photo = null, overlay = new Image();
+let scale = 1, offsetX = 0, offsetY = 0, dragging = false, startX=0, startY=0;
+
+canvas.width = 800; canvas.height = 800;
+
+// Load overlay (replace with your hosted PNG URL)
+overlay.src = "https://images.squarespace-cdn.com/content/61c946dc1a2e343a14ef4f41/73d55613-e468-495f-bdc3-84d3171e265a/im+adopted+badge.png"; // <-- change this to your Squarespace/hosted PNG link
+overlay.onload = draw;
+
+document.getElementById('upload').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    photo = new Image();
+    photo.onload = () => { fitImage(); draw(); document.getElementById('download').disabled = false; };
+    photo.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+// Fit uploaded photo to canvas
+function fitImage(){
+  const s = Math.max(canvas.width/photo.width, canvas.height/photo.height);
+  scale = s; offsetX = (canvas.width - photo.width*scale)/2; offsetY = (canvas.height - photo.height*scale)/2;
+}
+
+// Draw everything
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // Clip to circle
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(canvas.width/2, canvas.height/2, canvas.width/2, 0, Math.PI*2);
+  ctx.clip();
+  // User photo
+  if (photo) ctx.drawImage(photo, offsetX, offsetY, photo.width*scale, photo.height*scale);
+  ctx.restore();
+  // Overlay on top
+  if (overlay.complete) ctx.drawImage(overlay,0,0,canvas.width,canvas.height);
+}
+
+// Drag to move
+canvas.addEventListener('pointerdown', e => { dragging = true; startX=e.clientX; startY=e.clientY; });
+canvas.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  offsetX += e.clientX-startX; offsetY += e.clientY-startY;
+  startX = e.clientX; startY = e.clientY;
+  draw();
+});
+canvas.addEventListener('pointerup', ()=> dragging=false);
+canvas.addEventListener('pointerleave', ()=> dragging=false);
+
+// Zoom with wheel/pinch
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const delta = Math.exp(-e.deltaY/300);
+  scale *= delta;
+  draw();
+},{passive:false});
+
+// Download
+document.getElementById('download').addEventListener('click', () => {
+  const link = document.createElement('a');
+  link.download = 'imadopted-frame.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+</script>
+</body>
+</html>
