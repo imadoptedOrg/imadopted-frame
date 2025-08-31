@@ -10,16 +10,19 @@
   body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);margin:0;display:flex;flex-direction:column;align-items:center}
   header{text-align:center;padding:1.5rem 1rem .5rem}
   h1{margin:0;font-size:1.6rem;color:var(--blue)}
-  main{width:100%;max-width:480px;padding:0 1rem 2rem}
+  main{width:100%;max-width:520px;padding:0 1rem 2rem}
   .preview{position:relative;aspect-ratio:1/1;border-radius:50%;overflow:hidden;background:#eee;margin:0 0 1rem;box-shadow:0 8px 24px rgba(0,0,0,.08)}
   canvas{width:100%;height:100%;display:block;touch-action:none}
-  .btn,.upload-btn{width:100%;display:inline-flex;justify-content:center;align-items:center;padding:.9rem 1.1rem;font-weight:700;font-size:1rem;border:0;border-radius:12px;cursor:pointer}
+  .btn,.upload-btn{display:inline-flex;justify-content:center;align-items:center;padding:.9rem 1.1rem;font-weight:700;font-size:1rem;border:0;border-radius:12px;cursor:pointer}
   .btn-primary,.upload-btn{background:var(--blue);color:#fff;box-shadow:0 6px 16px rgba(11,110,251,.25)}
   .btn-primary:hover,.upload-btn:hover{background:var(--blue2)}
   .btn[disabled]{opacity:.6;cursor:not-allowed}
+  .row{display:flex;gap:.6rem}
+  .row > *{flex:1}
+  .controls{display:grid;gap:.6rem}
   #upload{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
-  .stack{display:grid;gap:.75rem}
   .helper,#status{text-align:center;font-size:.9rem;opacity:.8;margin-top:.5rem}
+  #ios-tip{display:none;margin-top:.5rem;padding:.75rem 1rem;border-radius:10px;background:#fff3cd;border:1px solid #ffe69c;color:#664d03;font-size:.95rem;text-align:center}
   footer{font-size:.85rem;opacity:.7;padding-bottom:1rem;text-align:center}
 </style>
 </head>
@@ -34,12 +37,22 @@
     <canvas id="canvas"></canvas>
   </div>
 
-  <div class="stack">
-    <label for="upload" class="upload-btn">Upload Photo</label>
+  <div class="controls">
+    <label for="upload" class="upload-btn" style="width:100%;">Upload Photo</label>
     <input type="file" id="upload" accept="image/*" />
     <div id="status"></div>
+
+    <!-- Zoom buttons -->
+    <div class="row">
+      <button id="zoomOut" class="btn">–</button>
+      <button id="fit" class="btn">Fit</button>
+      <button id="zoomIn" class="btn">+</button>
+    </div>
+
     <button id="download" class="btn btn-primary" disabled>Download PNG</button>
-    <p class="helper">On iPhone/iPad the image may open in a new tab. Long-press it and choose “Save Image.”</p>
+    <div id="ios-tip">
+      On iPhone/iPad: the image opens in a new tab. Long-press it and choose <b>Save Image</b>.
+    </div>
   </div>
 </main>
 
@@ -51,8 +64,11 @@ const ctx = cvs.getContext('2d');
 const fileInput = document.getElementById('upload');
 const downloadBtn = document.getElementById('download');
 const statusEl = document.getElementById('status');
+const zoomInBtn = document.getElementById('zoomIn');
+const zoomOutBtn = document.getElementById('zoomOut');
+const fitBtn = document.getElementById('fit');
+const iosTip = document.getElementById('ios-tip');
 
-// Preview sizing (retina-aware)
 const PREVIEW_SIZE = 720;
 const DPR = Math.max(1, window.devicePixelRatio || 1);
 cvs.width = PREVIEW_SIZE * DPR;
@@ -61,18 +77,16 @@ ctx.setTransform(DPR,0,0,DPR,0,0);
 
 let photo = null;
 let overlay = new Image();
-overlay.crossOrigin = "anonymous";     // safe for same-origin
-overlay.src = "./overlay.png";         // <-- keep this file in the repo root
+overlay.crossOrigin = "anonymous";
+overlay.src = "./overlay.png";   // keep this file in the same repo
 overlay.onload = draw;
 
-let state = {
-  scale: 1, minScale: 1,
-  x: 0, y: 0,
-  dragging: false, sx:0, sy:0,
-  imgLoaded: false
-};
+let state = { scale:1,minScale:1,x:0,y:0,dragging:false,sx:0,sy:0,imgLoaded:false };
 
-// Handle upload
+function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; }
+if (isIOS()){ downloadBtn.textContent = "Download PNG (iPhone/iPad)"; }
+
+// --- upload ---
 fileInput.addEventListener('change', e => {
   const f = e.target.files && e.target.files[0];
   if (!f) return;
@@ -80,129 +94,114 @@ fileInput.addEventListener('change', e => {
   r.onloadstart = ()=> statusEl.textContent = "Loading photo…";
   r.onload = ev => {
     photo = new Image();
-    photo.onload = () => { fitToCover(); downloadBtn.disabled = false; statusEl.textContent = ""; draw(); };
+    photo.onload = () => { fitToCover(); downloadBtn.disabled = false; statusEl.textContent = ""; };
     photo.src = ev.target.result;
   };
   r.onloadend = ()=> { if(statusEl.textContent) statusEl.textContent=""; };
   r.readAsDataURL(f);
 });
 
-// Make the photo cover the full square (so circle never shows gaps)
+// --- fit, clamp, zoom ---
+function clampOffset(){
+  const W=PREVIEW_SIZE,H=PREVIEW_SIZE;
+  const w=photo.width*state.scale,h=photo.height*state.scale;
+  state.x = Math.min(0, Math.max(W-w, state.x));
+  state.y = Math.min(0, Math.max(H-h, state.y));
+}
 function fitToCover(){
   state.imgLoaded = true;
-  const s = Math.max(PREVIEW_SIZE / photo.width, PREVIEW_SIZE / photo.height);
-  state.minScale = s;
-  state.scale = s;
-  state.x = (PREVIEW_SIZE - photo.width * s) / 2;
-  state.y = (PREVIEW_SIZE - photo.height * s) / 2;
-  clampOffset();
-}
-
-function clampOffset(){
-  const W = PREVIEW_SIZE, H = PREVIEW_SIZE;
-  const w = photo.width * state.scale;
-  const h = photo.height * state.scale;
-  const minX = W - w, maxX = 0;
-  const minY = H - h, maxY = 0;
-  state.x = Math.min(maxX, Math.max(minX, state.x));
-  state.y = Math.min(maxY, Math.max(minY, state.y));
-}
-
-function draw(){
-  const W = PREVIEW_SIZE, H = PREVIEW_SIZE;
-  ctx.clearRect(0,0,W,H);
-
-  // circular masked preview (matches Facebook look)
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(W/2, H/2, W/2, 0, Math.PI*2);
-  ctx.clip();
-
-  if (state.imgLoaded) {
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(photo, state.x, state.y, photo.width*state.scale, photo.height*state.scale);
-  }
-  ctx.restore();
-
-  if (overlay.complete) ctx.drawImage(overlay, 0, 0, W, H);
-}
-
-// Drag
-cvs.addEventListener('pointerdown', e => {
-  if (!state.imgLoaded) return;
-  state.dragging = true; state.sx = e.clientX; state.sy = e.clientY;
-  cvs.setPointerCapture(e.pointerId);
-});
-cvs.addEventListener('pointermove', e => {
-  if (!state.dragging) return;
-  state.x += (e.clientX - state.sx);
-  state.y += (e.clientY - state.sy);
-  state.sx = e.clientX; state.sy = e.clientY;
+  const s = Math.max(PREVIEW_SIZE/photo.width, PREVIEW_SIZE/photo.height);
+  state.minScale = s; state.scale = s;
+  state.x = (PREVIEW_SIZE-photo.width*s)/2;
+  state.y = (PREVIEW_SIZE-photo.height*s)/2;
   clampOffset(); draw();
-});
-["pointerup","pointercancel","pointerleave"].forEach(ev=>cvs.addEventListener(ev, ()=> state.dragging=false));
-
-// Zoom (wheel / pinch)
-cvs.addEventListener('wheel', e => {
-  if (!state.imgLoaded) return;
-  e.preventDefault();
-  const delta = Math.exp(-e.deltaY / 300);
-  const old = state.scale;
-  const next = Math.max(state.minScale, old * delta);
-  const cx = PREVIEW_SIZE/2, cy = PREVIEW_SIZE/2; // zoom around center
-  state.x = cx - (cx - state.x) * (next / old);
-  state.y = cy - (cy - state.y) * (next / old);
+}
+function zoomAbout(cx, cy, factor){
+  const old=state.scale, next=Math.max(state.minScale, old*factor);
+  state.x = cx - (cx - state.x)*(next/old);
+  state.y = cy - (cy - state.y)*(next/old);
   state.scale = next;
   clampOffset(); draw();
+}
+
+// --- draw preview ---
+function draw(){
+  const W=PREVIEW_SIZE,H=PREVIEW_SIZE;
+  ctx.clearRect(0,0,W,H);
+  ctx.save();
+  ctx.beginPath(); ctx.arc(W/2,H/2,W/2,0,Math.PI*2); ctx.clip();
+  if (state.imgLoaded){
+    ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+    ctx.drawImage(photo,state.x,state.y,photo.width*state.scale,photo.height*state.scale);
+  }
+  ctx.restore();
+  if (overlay.complete) ctx.drawImage(overlay,0,0,W,H);
+}
+
+// --- drag ---
+cvs.addEventListener('pointerdown', e => { if (!state.imgLoaded) return;
+  state.dragging=true; state.sx=e.clientX; state.sy=e.clientY; cvs.setPointerCapture(e.pointerId); });
+cvs.addEventListener('pointermove', e => { if (!state.dragging) return;
+  state.x += (e.clientX-state.sx); state.y += (e.clientY-state.sy);
+  state.sx=e.clientX; state.sy=e.clientY; clampOffset(); draw(); });
+["pointerup","pointercancel","pointerleave"].forEach(ev=>cvs.addEventListener(ev,()=>state.dragging=false));
+
+// --- wheel zoom desktop ---
+cvs.addEventListener('wheel', e => { if(!state.imgLoaded)return;
+  e.preventDefault(); zoomAbout(PREVIEW_SIZE/2,PREVIEW_SIZE/2,Math.exp(-e.deltaY/300));
 },{passive:false});
 
-// Export as HIGH-RES SQUARE with solid background (great for Facebook)
-function exportImage(){
-  const size = (overlay.naturalWidth && overlay.naturalHeight)
-    ? Math.min(overlay.naturalWidth, overlay.naturalHeight)
-    : 2048;
-
-  const tmp = document.createElement('canvas');
-  const tctx = tmp.getContext('2d');
-  tmp.width = size; tmp.height = size;
-
-  // Fill square background (white). You can change to "#f4f8fb" if preferred.
-  tctx.fillStyle = "#ffffff";
-  tctx.fillRect(0,0,size,size);
-
-  // Draw user photo (no clipping here; Facebook will crop later)
-  if (state.imgLoaded) {
-    const factor = size / PREVIEW_SIZE;
-    tctx.imageSmoothingEnabled = true;
-    tctx.imageSmoothingQuality = 'high';
-    tctx.drawImage(
-      photo,
-      state.x * factor,
-      state.y * factor,
-      photo.width * state.scale * factor,
-      photo.height * state.scale * factor
-    );
+// --- pinch zoom mobile ---
+const touches=new Map(); let pinchStartDist=0,pinchStartScale=1,pinchCenter={x:PREVIEW_SIZE/2,y:PREVIEW_SIZE/2};
+cvs.addEventListener('pointerdown',e=>{touches.set(e.pointerId,{x:e.clientX,y:e.clientY});});
+cvs.addEventListener('pointermove',e=>{
+  if(!touches.has(e.pointerId))return;
+  touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(touches.size===2&&state.imgLoaded){
+    const pts=[...touches.values()],dx=pts[1].x-pts[0].x,dy=pts[1].y-pts[0].y,dist=Math.hypot(dx,dy);
+    if(!pinchStartDist){pinchStartDist=dist;pinchStartScale=state.scale;
+      const rect=cvs.getBoundingClientRect();
+      pinchCenter.x=((pts[0].x+pts[1].x)/2-rect.left)/rect.width*PREVIEW_SIZE;
+      pinchCenter.y=((pts[0].y+pts[1].y)/2-rect.top)/rect.height*PREVIEW_SIZE;
+    } else {
+      const factor=dist/pinchStartDist,target=Math.max(state.minScale,pinchStartScale*factor);
+      const ratio=target/state.scale; zoomAbout(pinchCenter.x,pinchCenter.y,ratio);
+    }
   }
+});
+["pointerup","pointercancel","pointerleave"].forEach(ev=>cvs.addEventListener(ev,e=>{
+  touches.delete(e.pointerId); if(touches.size<2)pinchStartDist=0;
+}));
 
-  // Overlay artwork on top
-  if (overlay.complete) tctx.drawImage(overlay, 0, 0, size, size);
+// --- buttons ---
+zoomInBtn.addEventListener('click',()=>zoomAbout(PREVIEW_SIZE/2,PREVIEW_SIZE/2,1.12));
+zoomOutBtn.addEventListener('click',()=>zoomAbout(PREVIEW_SIZE/2,PREVIEW_SIZE/2,1/1.12));
+fitBtn.addEventListener('click',()=>{if(photo)fitToCover();});
 
-  const url = tmp.toDataURL('image/png');
-  if (isIOS()){
-    const w = window.open();
-    if (w){ w.document.write('<title>Save your frame</title><img style="width:100%;height:auto" src="'+url+'">'); w.document.close(); }
+// --- export high-res square with white bg ---
+function exportImage(){
+  const size=(overlay.naturalWidth&&overlay.naturalHeight)?Math.min(overlay.naturalWidth,overlay.naturalHeight):2048;
+  const tmp=document.createElement('canvas'); const tctx=tmp.getContext('2d');
+  tmp.width=size; tmp.height=size;
+  tctx.fillStyle="#ffffff"; tctx.fillRect(0,0,size,size);
+  if(state.imgLoaded){
+    const k=size/PREVIEW_SIZE;
+    tctx.imageSmoothingEnabled=true; tctx.imageSmoothingQuality='high';
+    tctx.drawImage(photo,state.x*k,state.y*k,photo.width*state.scale*k,photo.height*state.scale*k);
+  }
+  if(overlay.complete) tctx.drawImage(overlay,0,0,size,size);
+  const url=tmp.toDataURL('image/png');
+  if(isIOS()){
+    iosTip.style.display='block';
+    const w=window.open(); if(w){w.document.write('<title>Save your frame</title><img style="width:100%;height:auto" src="'+url+'">');w.document.close();}
   } else {
-    const a = document.createElement('a');
-    a.href = url; a.download = 'imadopted-frame.png';
-    document.body.appendChild(a); a.click(); a.remove();
+    iosTip.style.display='none';
+    const a=document.createElement('a'); a.href=url; a.download='imadopted-frame.png'; document.body.appendChild(a); a.click(); a.remove();
   }
 }
-function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; }
+downloadBtn.addEventListener('click',exportImage);
 
-document.getElementById('download').addEventListener('click', exportImage);
-
-// Initial draw
+// initial draw
 draw();
 </script>
 </body>
