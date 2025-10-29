@@ -2,35 +2,156 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>I’m Adopted – Add Our Frame</title>
+<title>I’m Adopted – Profile Frames</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
-  :root{--blue:#0b6efb;--blue2:#0956c6;--bg:#f4f8fb;--ink:#222}
-  *{box-sizing:border-box}
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);margin:0;display:flex;flex-direction:column;align-items:center}
-  header{text-align:center;padding:1.5rem 1rem .5rem}
-  h1{margin:0;font-size:1.6rem;color:var(--blue)}
-  main{width:100%;max-width:520px;padding:0 1rem 2rem}
-  .preview{position:relative;aspect-ratio:1/1;border-radius:50%;overflow:hidden;background:#eee;margin:0 0 1rem;box-shadow:0 8px 24px rgba(0,0,0,.08)}
-  canvas{width:100%;height:100%;display:block;touch-action:none}
-  .btn,.upload-btn{display:inline-flex;justify-content:center;align-items:center;padding:.9rem 1.1rem;font-weight:700;font-size:1rem;border:0;border-radius:12px;cursor:pointer}
-  .btn-primary,.upload-btn{background:var(--blue);color:#fff;box-shadow:0 6px 16px rgba(11,110,251,.25)}
-  .btn-primary:hover,.upload-btn:hover{background:var(--blue2)}
-  .btn[disabled]{opacity:.6;cursor:not-allowed}
-  .row{display:flex;gap:.6rem}
-  .row > *{flex:1}
-  .controls{display:grid;gap:.6rem}
-  #upload{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
-  .helper,#status{text-align:center;font-size:.9rem;opacity:.8;margin-top:.5rem}
-  #ios-tip{display:none;margin-top:.5rem;padding:.75rem 1rem;border-radius:10px;background:#fff3cd;border:1px solid #ffe69c;color:#664d03;font-size:.95rem;text-align:center}
-  footer{font-size:.85rem;opacity:.7;padding-bottom:1rem;text-align:center}
+:root {
+  --navy: #1a2433;
+  --accent: #0b6efb;
+  --accent-dark: #0956c6;
+  --bg: #faf8f6;
+  --panel: #ffffff;
+  --border: #e8e3de;
+}
+* { box-sizing: border-box; }
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--navy);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem;
+}
+
+/* Header */
+header {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+h1 {
+  margin: 0 0 0.4rem;
+  font-size: 1.7rem;
+  font-weight: 700;
+}
+header p {
+  font-size: 0.95rem;
+  opacity: 0.8;
+  margin: 0;
+}
+
+/* Frame Selector */
+.frame-selector {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.3rem;
+  margin: 1rem 0 1.5rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,.05);
+}
+.frame-selector button {
+  flex: 1;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  font-weight: 600;
+  color: var(--navy);
+  cursor: pointer;
+  transition: all .25s ease;
+}
+.frame-selector button.active {
+  background: var(--navy);
+  color: white;
+}
+
+/* Canvas area */
+.preview {
+  position: relative;
+  aspect-ratio: 1/1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f0f0f0;
+  margin: 0 auto 1rem;
+  max-width: 320px;
+  box-shadow: 0 10px 25px rgba(0,0,0,.08);
+}
+canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+
+/* Controls */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+  max-width: 320px;
+}
+button, label.upload-btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.8rem 1rem;
+  font-weight: 600;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all .2s ease;
+  font-size: 0.95rem;
+}
+.upload-btn {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 4px 12px rgba(11,110,251,.25);
+}
+.upload-btn:hover { background: var(--accent-dark); }
+
+.btn-row { display: flex; gap: 0.5rem; }
+.btn {
+  flex: 1;
+  background: white;
+  border: 1px solid var(--border);
+  color: var(--navy);
+}
+.btn:hover { background: #f3f1ef; }
+.btn-primary {
+  background: var(--navy);
+  color: white;
+}
+.btn-primary:hover { background: #232f45; }
+
+#status { text-align: center; font-size: .9rem; opacity: .8; min-height: 1rem; }
+#ios-tip {
+  display: none;
+  font-size: 0.9rem;
+  background: #fff3cd;
+  border: 1px solid #ffe69c;
+  border-radius: 10px;
+  padding: 0.7rem;
+  text-align: center;
+  color: #664d03;
+}
+footer {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  text-align: center;
+  margin-top: 1.5rem;
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>Add our I’m Adopted Frame</h1>
-  <p>Upload your photo, add the frame, and save it.<br> Then update your profile picture on Facebook or any social media.</p>
+  <h1>I’m Adopted Awareness Frames</h1>
+  <p>Upload your photo, pick a frame, and download your profile picture.</p>
 </header>
+
+<div class="frame-selector">
+  <button id="frame1Btn" class="active"> Mental Health</button>
+  <button id="frame2Btn"> Awareness Month</button>
+</div>
 
 <main>
   <div class="preview">
@@ -38,21 +159,18 @@
   </div>
 
   <div class="controls">
-    <label for="upload" class="upload-btn" style="width:100%;">Upload Photo</label>
-    <input type="file" id="upload" accept="image/*" />
+    <label for="upload" class="upload-btn">Upload Photo</label>
+    <input type="file" id="upload" accept="image/*" style="display:none;">
     <div id="status"></div>
 
-    <!-- Zoom buttons -->
-    <div class="row">
+    <div class="btn-row">
       <button id="zoomOut" class="btn">–</button>
       <button id="fit" class="btn">Fit</button>
       <button id="zoomIn" class="btn">+</button>
     </div>
 
-    <button id="download" class="btn btn-primary" disabled>Download Image With Frame</button>
-    <div id="ios-tip">
-      On iPhone/iPad: the image opens in a new tab. Long-press it and choose <b>Save Image</b>.
-    </div>
+    <button id="download" class="btn-primary" disabled>Download Image With Frame</button>
+    <div id="ios-tip">On iPhone/iPad: the image opens in a new tab. Long-press it and choose <b>Save Image</b>.</div>
   </div>
 </main>
 
@@ -68,6 +186,8 @@ const zoomInBtn = document.getElementById('zoomIn');
 const zoomOutBtn = document.getElementById('zoomOut');
 const fitBtn = document.getElementById('fit');
 const iosTip = document.getElementById('ios-tip');
+const frame1Btn = document.getElementById('frame1Btn');
+const frame2Btn = document.getElementById('frame2Btn');
 
 const PREVIEW_SIZE = 720;
 const DPR = Math.max(1, window.devicePixelRatio || 1);
@@ -78,13 +198,27 @@ ctx.setTransform(DPR,0,0,DPR,0,0);
 let photo = null;
 let overlay = new Image();
 overlay.crossOrigin = "anonymous";
-overlay.src = "./overlay.png";   // keep this file in the same repo
+overlay.src = "./overlay.png";
 overlay.onload = draw;
 
 let state = { scale:1,minScale:1,x:0,y:0,dragging:false,sx:0,sy:0,imgLoaded:false };
 
-function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; }
-if (isIOS()){ downloadBtn.textContent = "Download Image with Frame (iPhone/iPad)"; }
+function setOverlay(src){
+  overlay.src = src;
+  overlay.onload = draw;
+}
+
+// toggle buttons
+frame1Btn.onclick = ()=> {
+  frame1Btn.classList.add("active");
+  frame2Btn.classList.remove("active");
+  setOverlay("./overlay.png");
+};
+frame2Btn.onclick = ()=> {
+  frame2Btn.classList.add("active");
+  frame1Btn.classList.remove("active");
+  setOverlay("./overlay-awareness.png");
+};
 
 // --- upload ---
 fileInput.addEventListener('change', e => {
@@ -101,7 +235,6 @@ fileInput.addEventListener('change', e => {
   r.readAsDataURL(f);
 });
 
-// --- fit, clamp, zoom ---
 function clampOffset(){
   const W=PREVIEW_SIZE,H=PREVIEW_SIZE;
   const w=photo.width*state.scale,h=photo.height*state.scale;
@@ -124,7 +257,6 @@ function zoomAbout(cx, cy, factor){
   clampOffset(); draw();
 }
 
-// --- draw preview ---
 function draw(){
   const W=PREVIEW_SIZE,H=PREVIEW_SIZE;
   ctx.clearRect(0,0,W,H);
@@ -138,7 +270,7 @@ function draw(){
   if (overlay.complete) ctx.drawImage(overlay,0,0,W,H);
 }
 
-// --- drag ---
+// drag + zoom
 cvs.addEventListener('pointerdown', e => { if (!state.imgLoaded) return;
   state.dragging=true; state.sx=e.clientX; state.sy=e.clientY; cvs.setPointerCapture(e.pointerId); });
 cvs.addEventListener('pointermove', e => { if (!state.dragging) return;
@@ -146,39 +278,15 @@ cvs.addEventListener('pointermove', e => { if (!state.dragging) return;
   state.sx=e.clientX; state.sy=e.clientY; clampOffset(); draw(); });
 ["pointerup","pointercancel","pointerleave"].forEach(ev=>cvs.addEventListener(ev,()=>state.dragging=false));
 
-// --- wheel zoom desktop ---
 cvs.addEventListener('wheel', e => { if(!state.imgLoaded)return;
   e.preventDefault(); zoomAbout(PREVIEW_SIZE/2,PREVIEW_SIZE/2,Math.exp(-e.deltaY/300));
 },{passive:false});
 
-// --- pinch zoom mobile ---
-const touches=new Map(); let pinchStartDist=0,pinchStartScale=1,pinchCenter={x:PREVIEW_SIZE/2,y:PREVIEW_SIZE/2};
-cvs.addEventListener('pointerdown',e=>{touches.set(e.pointerId,{x:e.clientX,y:e.clientY});});
-cvs.addEventListener('pointermove',e=>{
-  if(!touches.has(e.pointerId))return;
-  touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(touches.size===2&&state.imgLoaded){
-    const pts=[...touches.values()],dx=pts[1].x-pts[0].x,dy=pts[1].y-pts[0].y,dist=Math.hypot(dx,dy);
-    if(!pinchStartDist){pinchStartDist=dist;pinchStartScale=state.scale;
-      const rect=cvs.getBoundingClientRect();
-      pinchCenter.x=((pts[0].x+pts[1].x)/2-rect.left)/rect.width*PREVIEW_SIZE;
-      pinchCenter.y=((pts[0].y+pts[1].y)/2-rect.top)/rect.height*PREVIEW_SIZE;
-    } else {
-      const factor=dist/pinchStartDist,target=Math.max(state.minScale,pinchStartScale*factor);
-      const ratio=target/state.scale; zoomAbout(pinchCenter.x,pinchCenter.y,ratio);
-    }
-  }
-});
-["pointerup","pointercancel","pointerleave"].forEach(ev=>cvs.addEventListener(ev,e=>{
-  touches.delete(e.pointerId); if(touches.size<2)pinchStartDist=0;
-}));
-
-// --- buttons ---
 zoomInBtn.addEventListener('click',()=>zoomAbout(PREVIEW_SIZE/2,PREVIEW_SIZE/2,1.12));
 zoomOutBtn.addEventListener('click',()=>zoomAbout(PREVIEW_SIZE/2,PREVIEW_SIZE/2,1/1.12));
 fitBtn.addEventListener('click',()=>{if(photo)fitToCover();});
 
-// --- export high-res square with white bg ---
+function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; }
 function exportImage(){
   const size=(overlay.naturalWidth&&overlay.naturalHeight)?Math.min(overlay.naturalWidth,overlay.naturalHeight):2048;
   const tmp=document.createElement('canvas'); const tctx=tmp.getContext('2d');
@@ -193,15 +301,13 @@ function exportImage(){
   const url=tmp.toDataURL('image/png');
   if(isIOS()){
     iosTip.style.display='block';
-    const w=window.open(); if(w){w.document.write('<title>Save your frame</title><img style="width:100%;height:auto" src="'+url+'">');w.document.close();}
+    const w=window.open(); if(w){w.document.write('<title>Save your frame</title><img style='width:100%;height:auto' src='"+url+"'>');w.document.close();}
   } else {
     iosTip.style.display='none';
     const a=document.createElement('a'); a.href=url; a.download='imadopted-frame.png'; document.body.appendChild(a); a.click(); a.remove();
   }
 }
 downloadBtn.addEventListener('click',exportImage);
-
-// initial draw
 draw();
 </script>
 </body>
