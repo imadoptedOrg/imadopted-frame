@@ -149,8 +149,8 @@ footer {
 </header>
 
 <div class="frame-selector">
-  <button id="frame1Btn" class="active"> Mental Health</button>
-  <button id="frame2Btn"> Awareness Month</button>
+  <button id="frame1Btn" class="active">Mental Health</button>
+  <button id="frame2Btn">Awareness Month</button>
 </div>
 
 <main>
@@ -177,6 +177,7 @@ footer {
 <footer>© I’m Adopted 2025</footer>
 
 <script>
+const BASE = "https://imadoptedorg.github.io/imadopted-frame/";
 const cvs = document.getElementById('canvas');
 const ctx = cvs.getContext('2d');
 const fileInput = document.getElementById('upload');
@@ -198,7 +199,7 @@ ctx.setTransform(DPR,0,0,DPR,0,0);
 let photo = null;
 let overlay = new Image();
 overlay.crossOrigin = "anonymous";
-overlay.src = "./overlay.png";
+overlay.src = BASE + "overlay.png";
 overlay.onload = draw;
 
 let state = { scale:1,minScale:1,x:0,y:0,dragging:false,sx:0,sy:0,imgLoaded:false };
@@ -212,12 +213,12 @@ function setOverlay(src){
 frame1Btn.onclick = ()=> {
   frame1Btn.classList.add("active");
   frame2Btn.classList.remove("active");
-  setOverlay("./overlay.png");
+  setOverlay(BASE + "overlay.png");
 };
 frame2Btn.onclick = ()=> {
   frame2Btn.classList.add("active");
   frame1Btn.classList.remove("active");
-  setOverlay("./overlay-awareness.png");
+  setOverlay(BASE + "overlay-awareness.png");
 };
 
 // --- upload ---
@@ -301,7 +302,8 @@ function exportImage(){
   const url=tmp.toDataURL('image/png');
   if(isIOS()){
     iosTip.style.display='block';
-    const w=window.open(); if(w){w.document.write('<title>Save your frame</title><img style='width:100%;height:auto' src='"+url+"'>');w.document.close();}
+    const w=window.open();
+    if(w){w.document.write('<title>Save your frame</title><img style="width:100%;height:auto" src="'+url+'">'); w.document.close();}
   } else {
     iosTip.style.display='none';
     const a=document.createElement('a'); a.href=url; a.download='imadopted-frame.png'; document.body.appendChild(a); a.click(); a.remove();
